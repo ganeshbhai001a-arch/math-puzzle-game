@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#3b2a8f">
+<title>Math Quest</title>
+<style>
+:root{
+  --bg1:#3b2a8f; --bg2:#7b3fe4; --bg3:#ff6bb5;
+  --card:#ffffff; --ink:#26224a; --soft:#6d68a0;
+  --green:#22c55e; --red:#ef4444; --yellow:#ffc933; --blue:#3b82f6; --orange:#ff8a3d;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;color:var(--ink);
+  background:linear-gradient(160deg,var(--bg1),var(--bg2) 55%,var(--bg3));background-attachment:fixed;
+  user-select:none;-webkit-user-select:none;touch-action:manipulation}
+button{font-family:inherit;cursor:pointer;border:0;color:inherit}
+#app{position:relative;height:100vh;height:100dvh;max-width:520px;margin:0 auto}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;padding:14px 14px calc(14px + env(safe-area-inset-bottom));overflow:hidden}
+.screen.active{display:flex;animation:slideIn .35s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* shared */
+.btn{background:#fff;border-radius:18px;padding:14px 20px;font-size:18px;font-weight:800;box-shadow:0 5px 0 rgba(0,0,0,.18);transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.btn.primary{background:linear-gradient(180deg,#ffd84d,#ffb300);color:#4a2b00}
+.btn.green{background:linear-gradient(180deg,#4ade80,#16a34a);color:#fff}
+.btn.ghost{background:rgba(255,255,255,.18);color:#fff;box-shadow:none;font-size:15px;padding:10px 16px}
+.btn.big{font-size:26px;padding:18px 28px;width:100%}
+.icon{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.2);color:#fff;font-size:22px;display:grid;place-items:center;padding:0}
+.icon:active{background:rgba(255,255,255,.35)}
+.bar{height:14px;background:rgba(255,255,255,.25);border-radius:99px;overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffe066,#ff8a3d);border-radius:99px;transition:width .6s ease}
+.pill{background:rgba(255,255,255,.2);color:#fff;border-radius:99px;padding:6px 14px;font-weight:800;font-size:14px;white-space:nowrap}
+
+/* home */
+#home{align-items:center;justify-content:center;text-align:center;gap:14px;color:#fff}
+#home .corner{position:absolute;top:14px;right:14px}
+.logo{font-size:84px;line-height:1;animation:float 3s ease-in-out infinite;filter:drop-shadow(0 8px 10px rgba(0,0,0,.25))}
+@keyframes float{50%{transform:translateY(-10px) rotate(4deg)}}
+h1{margin:0;font-size:clamp(40px,12vw,58px);font-weight:900;letter-spacing:1px;text-shadow:0 4px 0 rgba(0,0,0,.2)}
+h1 span{color:var(--yellow)}
+.tag{margin:0;font-size:18px;opacity:.95}
+.stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#home .bar{width:100%}
+.diff{display:flex;gap:8px;width:100%}
+.diff button{flex:1;padding:14px 4px;border-radius:16px;font-weight:900;font-size:17px;background:rgba(255,255,255,.18);color:#fff;border:3px solid transparent;transition:.2s}
+.diff button.on{background:#fff;color:var(--ink);border-color:var(--yellow);transform:scale(1.06);box-shadow:0 6px 14px rgba(0,0,0,.25)}
+.diff-note{min-height:22px;font-size:15px;opacity:.95;margin:-4px 0 0}
+
+/* levels */
+.head{display:flex;align-items:center;gap:10px;color:#fff;margin-bottom:10px}
+.head h2{margin:0;font-size:22px;flex:1;text-align:center}
+#levels .scroll{flex:1;overflow-y:auto;padding:2px 2px 20px;-webkit-overflow-scrolling:touch}
+.sec{color:#fff;font-weight:900;font-size:15px;margin:16px 4px 8px;display:flex;justify-content:space-between;opacity:.95}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.lv{aspect-ratio:1;border-radius:16px;font-weight:900;font-size:20px;background:#fff;color:var(--ink);box-shadow:0 4px 0 rgba(0,0,0,.18);position:relative;display:grid;place-items:center;padding:0}
+.lv:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.lv.done{background:linear-gradient(180deg,#86efac,#22c55e);color:#064e1e}
+.lv.done::after{content:"✓";position:absolute;top:2px;right:6px;font-size:12px}
+.lv.cur{background:linear-gradient(180deg,#ffe066,#ffb300);color:#4a2b00;animation:pulse 1.4s infinite}
+.lv.lock{background:rgba(255,255,255,.18);color:rgba(255,255,255,.8);box-shadow:none;font-size:15px}
+.lv.lock small{display:block;font-size:11px;opacity:.85}
+@keyframes pulse{50%{transform:scale(1.08)}}
+
+/* game */
+#game .head{margin-bottom:8px}
+.lvl-title{flex:1;text-align:center;color:#fff;font-weight:900;font-size:20px;line-height:1.1}
+.lvl-title small{display:block;font-size:12px;opacity:.85;font-weight:700}
+.meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 6px}
+.badges{display:flex;gap:6px;justify-content:center;margin:6px 0}
+.qcard{flex:1;min-height:0;background:var(--card);border-radius:26px;box-shadow:0 8px 0 rgba(0,0,0,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;margin:4px 0 10px;text-align:center}
+.qtopic{font-size:13px;font-weight:900;color:#fff;background:linear-gradient(90deg,#7b3fe4,#ff6bb5);padding:4px 14px;border-radius:99px;margin-bottom:8px}
+.qtext{font-size:clamp(32px,10vw,54px);font-weight:900;line-height:1.15;word-break:break-word}
+.qmark{font-size:clamp(22px,6vw,30px);color:var(--soft);font-weight:800}
+.ans{margin-top:10px;min-width:60%;max-width:92%;border:4px dashed #c9c3f5;border-radius:18px;padding:6px 18px;font-size:clamp(30px,9vw,44px);font-weight:900;min-height:1.5em;color:var(--blue);background:#f6f4ff}
+.ans.ph{color:#c1bde6}
+.ans.shake{animation:shake .45s;border-color:var(--red);background:#fff1f1}
+.ans.good{border-color:var(--green);background:#ecfdf3;color:#15803d;animation:pop .5s}
+@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+@keyframes pop{50%{transform:scale(1.12)}}
+.fb{min-height:26px;text-align:center;color:#fff;font-weight:900;font-size:18px;margin-bottom:8px;text-shadow:0 2px 0 rgba(0,0,0,.2)}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.k{height:clamp(54px,9.2vh,76px);border-radius:18px;background:#fff;font-size:clamp(26px,5.5vh,34px);font-weight:900;color:var(--ink);box-shadow:0 5px 0 rgba(0,0,0,.2);transition:transform .07s,box-shadow .07s}
+.k:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.2)}
+.k.back{background:linear-gradient(180deg,#ffb4a2,#ff6b6b);color:#fff}
+.k.go{background:linear-gradient(180deg,#4ade80,#16a34a);color:#fff;font-size:clamp(18px,3.6vh,24px)}
+
+/* modal + effects */
+.modal{position:fixed;inset:0;background:rgba(20,10,60,.65);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal.open{display:flex;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.box{background:#fff;border-radius:26px;padding:24px 20px;max-width:360px;width:100%;text-align:center;box-shadow:0 14px 40px rgba(0,0,0,.4);animation:pop .35s}
+.box h3{margin:0 0 8px;font-size:24px}
+.box p{margin:0 0 18px;color:var(--soft);font-size:17px;line-height:1.4}
+.mb{display:flex;gap:10px}
+.mb .btn{flex:1;font-size:16px;padding:13px 8px}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,30px);background:#26224a;color:#fff;padding:12px 20px;border-radius:99px;font-weight:800;opacity:0;pointer-events:none;transition:.3s;z-index:60;max-width:90%;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:40}
+#fx span{position:absolute;top:-30px;font-size:26px;animation:fall 1.4s ease-in forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.9}}
+@media (max-height:620px){.logo{font-size:56px}.qtopic{display:none}
+  .screen{padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
+  .k{height:clamp(44px,8vh,56px);font-size:24px;border-radius:14px}.keys{gap:7px}
+  .fb{min-height:20px;margin-bottom:4px;font-size:16px}.qcard{margin:2px 0 8px}
+  .meta{margin:4px 0}.icon{width:40px;height:40px}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <section id="home" class="screen active">
+    <button class="icon corner" data-sound aria-label="Toggle sound">🔊</button>
+    <div class="logo">🧮</div>
+    <h1>Math<span>Quest</span></h1>
+    <p class="tag">100 levels of number fun!</p>
+    <div class="stats">
+      <span class="pill" id="hLevel">Level 1</span>
+      <span class="pill" id="hScore">⭐ 0</span>
+    </div>
+    <div class="bar"><i id="hBar"></i></div>
+    <button class="btn primary big" id="startBtn">▶ Start Game</button>
+    <div class="diff" id="diffBox">
+      <button data-d="easy">😊 Easy</button>
+      <button data-d="normal">🙂 Normal</button>
+      <button data-d="hard">🔥 Hard</button>
+    </div>
+    <p class="diff-note" id="diffNote"></p>
+    <button class="btn ghost" id="resetHome">↺ Restart Progress</button>
+  </section>
+
+  <!-- LEVEL SELECT -->
+  <section id="levels" class="screen">
+    <div class="head">
+      <button class="icon" id="lvHome" aria-label="Home">🏠</button>
+      <h2>Choose a Level</h2>
+      <button class="icon" data-sound aria-label="Toggle sound">🔊</button>
+    </div>
+    <div class="meta" style="margin-top:0">
+      <span class="pill" id="lScore">⭐ 0</span>
+      <span class="pill" id="lDone">0 / 100 done</span>
+      <span class="pill" id="lDiff">Normal</span>
+    </div>
+    <div class="bar" style="margin-bottom:10px"><i id="lBar"></i></div>
+    <button class="btn green" id="contBtn">▶ Continue</button>
+    <div class="scroll" id="lvScroll"></div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen">
+    <div class="head">
+      <button class="icon" id="gHome" aria-label="Home">🏠</button>
+      <div class="lvl-title"><span id="gLevel">Level 1</span><small id="gSec"></small></div>
+      <button class="icon" data-sound aria-label="Toggle sound">🔊</button>
+      <button class="icon" id="gRestart" aria-label="Restart game">↺</button>
+    </div>
+    <div class="bar"><i id="gBar"></i></div>
+    <div class="meta">
+      <span class="pill" id="gScore">⭐ 0</span>
+      <span class="pill" id="gDiff">Normal</span>
+      <span class="pill" id="gDone">0/100</span>
+    </div>
+    <div class="qcard">
+      <div class="qtopic" id="gTopic">Addition</div>
+      <div class="qtext" id="gQ">1 + 1</div>
+      <div class="qmark">= ?</div>
+      <div class="ans ph" id="gAns">?</div>
+    </div>
+    <div class="fb" id="gFb"></div>
+    <div class="keys" id="keys">
+      <button class="k" data-k="1">1</button><button class="k" data-k="2">2</button><button class="k" data-k="3">3</button>
+      <button class="k" data-k="4">4</button><button class="k" data-k="5">5</button><button class="k" data-k="6">6</button>
+      <button class="k" data-k="7">7</button><button class="k" data-k="8">8</button><button class="k" data-k="9">9</button>
+      <button class="k back" data-k="back" aria-label="Backspace">⌫</button>
+      <button class="k" data-k="0">0</button>
+      <button class="k go" data-k="go">Submit ✔</button>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="modal"><div class="box"><h3 id="mTitle"></h3><p id="mText"></p><div class="mb" id="mBtns"></div></div></div>
+<div id="toast"></div>
+<div id="fx"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= QUESTION GENERATOR ================= */
+var DM = {easy:0.7, normal:1, hard:1.4};
+function ri(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function cl(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+function pick(a){ return a[ri(0,a.length-1)]; }
+function sc(base,span,t,d,lo,hi){ return cl(Math.round((base+span*t)*d),lo,hi); }
+function mk(text,ans,topic){ return {text:text,ans:ans,topic:topic}; }
+
+var G = {
+  add:function(t,d){ var m=sc(9,90,t,d,6,999),a=ri(2,m),b=ri(2,m); return mk(a+" + "+b,a+b,"Addition"); },
+  sub:function(t,d){ var m=sc(9,90,t,d,6,999),a=ri(4,m),b=ri(1,a-1); return mk(a+" − "+b,a-b,"Subtraction"); },
+  mul:function(t,d){ var m=sc(3,9,t,d,3,25),a=ri(2,m),b=ri(2,m); return mk(a+" × "+b,a*b,"Multiplication"); },
+  div:function(t,d){ var m=sc(3,9,t,d,3,20),b=ri(2,m),q=ri(2,m); return mk((b*q)+" ÷ "+b,q,"Division"); },
+  sq:function(t,d){ var m=sc(4,14,t,d,3,30),n=ri(2,m); return mk(n+"²",n*n,"Squares"); },
+  cube:function(t,d){ var m=sc(3,7,t,d,3,15),n=ri(2,m); return mk(n+"³",n*n*n,"Cubes"); },
+  root:function(t,d){ var m=sc(5,15,t,d,3,30),n=ri(2,m); return mk("√"+(n*n),n,"Square Roots"); }
+};
+
+var C = {
+  sqPlus:function(t,d){ var n=ri(2,sc(4,10,t,d,3,20)),k=ri(1,sc(9,40,t,d,5,60)); if(Math.random()<.5) return mk(n+"² + "+k,n*n+k,"Mixed Challenge"); k=ri(1,Math.min(k,n*n-1)); return mk(n+"² − "+k,n*n-k,"Mixed Challenge"); },
+  sqSum:function(t,d){ var m=sc(3,8,t,d,3,15),a=ri(2,m),b=ri(2,m); return mk(a+"² + "+b+"²",a*a+b*b,"Mixed Challenge"); },
+  sqDiff:function(t,d){ var m=sc(4,9,t,d,4,18),a=ri(3,m),b=ri(2,a-1); return mk(a+"² − "+b+"²",a*a-b*b,"Mixed Challenge"); },
+  rootMul:function(t,d){ var n=ri(2,sc(5,10,t,d,3,20)),b=ri(2,sc(4,8,t,d,3,15)); return mk("√"+(n*n)+" × "+b,n*b,"Mixed Challenge"); },
+  rootPlus:function(t,d){ var n=ri(2,sc(5,12,t,d,3,25)),k=ri(2,sc(9,30,t,d,5,50)); return mk("√"+(n*n)+" + "+k,n+k,"Mixed Challenge"); },
+  cubePlus:function(t,d){ var n=ri(2,sc(3,5,t,d,3,12)),k=ri(1,sc(9,30,t,d,5,50)); if(Math.random()<.5) return mk(n+"³ + "+k,n*n*n+k,"Mixed Challenge"); k=ri(1,Math.min(k,n*n*n-1)); return mk(n+"³ − "+k,n*n*n-k,"Mixed Challenge"); },
+  mulAdd:function(t,d){ var m=sc(4,10,t,d,3,20),a=ri(2,m),b=ri(2,m),c=ri(1,sc(9,25,t,d,5,40)); return mk(a+" × "+b+" + "+c,a*b+c,"Mixed Challenge"); },
+  paren:function(t,d){ var m=sc(6,20,t,d,5,40),a=ri(2,m),b=ri(2,m),c=ri(2,sc(3,7,t,d,3,12)); return mk("("+a+" + "+b+") × "+c,(a+b)*c,"Mixed Challenge"); },
+  rootCube:function(t,d){ var m=sc(3,3,t,d,3,8),n=ri(2,sc(5,8,t,d,3,15)),k=ri(2,m); return mk("√"+(n*n)+" + "+k+"³",n+k*k*k,"Mixed Challenge"); }
+};
+function comp(t,d,names){
+  var all = names || ["sqPlus","sqSum","sqDiff","rootMul","rootPlus","cubePlus","mulAdd","paren"].concat(t>0.3?["rootCube"]:[]);
+  return C[pick(all)](t,d);
+}
+
+var OPS = ["add","sub","mul","div"], INTRO = {add:1,sub:4,mul:7,div:11};
+
+function genQuestion(level, diff){
+  var d = DM[diff] || 1, t, r;
+  if(level<=20){
+    t=(level-1)/19;
+    var forced = OPS.filter(function(o){return INTRO[o]===level;})[0];
+    var pool = OPS.filter(function(o){return INTRO[o]<=level;});
+    return G[forced||pick(pool)](t,d);
+  }
+  if(level<=50){
+    t=(level-21)/29;
+    if(level===21) return G.sq(0,d);
+    if(Math.random()<0.55) return (t>0.3 && Math.random()<0.4) ? comp(t,d,["sqPlus","sqSum","sqDiff"]) : G.sq(t,d);
+    return G[pick(OPS)](0.5+0.5*t,d);
+  }
+  if(level<=70){
+    t=(level-51)/19;
+    if(level===51) return G.root(0,d);
+    r=Math.random();
+    if(r<0.5) return (t>0.3 && Math.random()<0.4) ? comp(t,d,["rootMul","rootPlus"]) : G.root(t,d);
+    if(r<0.7) return G.sq(0.4+0.6*t,d);
+    return G[pick(OPS)](0.6+0.4*t,d);
+  }
+  t=(level-71)/29;
+  if(level===71) return G.cube(0,d);
+  if(Math.random()<0.15+0.35*t) return comp(t,d);
+  var k = pick(["add","sub","mul","div","sq","cube","root"]);
+  var tt = (k==="sq") ? 0.5+0.5*t : (k==="cube") ? t : (k==="root") ? 0.4+0.6*t : 0.7+0.3*t;
+  return G[k](tt,d);
+}
+
+function sectionOf(l){
+  return l<=20 ? "Number Basics" : l<=50 ? "Squares" : l<=70 ? "Square Roots" : "Master Mix";
+}
+
+/* export for testing */
+if(typeof module!=="undefined" && module.exports){ module.exports={genQuestion:genQuestion}; }
+if(typeof document==="undefined") return;
+
+/* ================= STORAGE ================= */
+var KEY="mathquest_save_v1", mem=null;
+var S={done:0,score:0,diff:"normal",sound:true};
+function load(){
+  try{
+    var raw=localStorage.getItem(KEY);
+    if(raw){ var o=JSON.parse(raw);
+      S.done=cl(parseInt(o.done,10)||0,0,100); S.score=Math.max(0,parseInt(o.score,10)||0);
+      S.diff=DM[o.diff]?o.diff:"normal"; S.sound=o.sound!==false; }
+  }catch(e){ if(mem) S=mem; }
+}
+function save(){
+  mem=S;
+  try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){}
+}
+
+/* ================= HELPERS ================= */
+function $(id){ return document.getElementById(id); }
+function show(id){
+  var s=document.querySelectorAll(".screen");
+  for(var i=0;i<s.length;i++) s[i].classList.remove("active");
+  $(id).classList.add("active");
+}
+function activeScreen(){ var a=document.querySelector(".screen.active"); return a?a.id:""; }
+var toastT;
+function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove("show");},1700); }
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+var MULT={easy:1,normal:2,hard:3};
+
+function modal(title,text,buttons){
+  $("mTitle").textContent=title; $("mText").textContent=text;
+  var b=$("mBtns"); b.innerHTML="";
+  buttons.forEach(function(x){
+    var el=document.createElement("button"); el.className="btn "+(x.cls||""); el.textContent=x.label;
+    el.onclick=function(){ closeModal(); if(x.fn) x.fn(); };
+    b.appendChild(el);
+  });
+  $("modal").classList.add("open");
+}
+function closeModal(){ $("modal").classList.remove("open"); }
+function modalOpen(){ return $("modal").classList.contains("open"); }
+
+/* ================= SOUND ================= */
+var ac=null;
+function audio(){
+  if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(ac && ac.state==="suspended"){ try{ ac.resume(); }catch(e){} }
+  return ac;
+}
+function tone(freq,start,dur,type,vol){
+  var a=audio(); if(!a) return;
+  var o=a.createOscillator(), g=a.createGain(), t0=a.currentTime+start;
+  o.type=type||"sine"; o.frequency.value=freq;
+  g.gain.setValueAtTime(vol||0.15,t0); g.gain.exponentialRampToValueAtTime(0.001,t0+dur);
+  o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0+dur+0.02);
+}
+function sfx(kind){
+  if(!S.sound) return;
+  if(kind==="key") tone(520,0,0.06,"triangle",0.08);
+  else if(kind==="ok"){ tone(523,0,0.14,"triangle"); tone(659,0.12,0.14,"triangle"); tone(784,0.24,0.26,"triangle"); }
+  else if(kind==="bad"){ tone(240,0,0.18,"sawtooth",0.09); tone(190,0.16,0.26,"sawtooth",0.09); }
+  else if(kind==="win"){ [523,659,784,1047,784,1047,1319].forEach(function(f,i){ tone(f,i*0.13,0.22,"triangle"); }); }
+}
+function updateSoundBtns(){
+  var b=document.querySelectorAll("[data-sound]");
+  for(var i=0;i<b.length;i++) b[i].textContent=S.sound?"🔊":"🔇";
+}
+
+/* ================= HOME ================= */
+var NOTES={easy:"Smaller numbers – relaxed and friendly.",normal:"Balanced numbers – just right.",hard:"Bigger numbers – a real challenge!"};
+function renderHome(){
+  var next=Math.min(S.done+1,100);
+  $("hLevel").textContent = S.done>=100 ? "All levels complete! 🏆" : "Level "+next;
+  $("hScore").textContent="⭐ "+S.score;
+  $("hBar").style.width=S.done+"%";
+  var b=$("diffBox").children;
+  for(var i=0;i<b.length;i++) b[i].classList.toggle("on",b[i].dataset.d===S.diff);
+  $("diffNote").textContent=NOTES[S.diff];
+  updateSoundBtns();
+}
+function goHome(){ renderHome(); show("home"); }
+
+/* ================= LEVEL SELECT ================= */
+function renderLevels(){
+  $("lScore").textContent="⭐ "+S.score;
+  $("lDone").textContent=S.done+" / 100 done";
+  $("lDiff").textContent=cap(S.diff);
+  $("lBar").style.width=S.done+"%";
+  $("contBtn").textContent = S.done>=100 ? "↻ Replay Level 100" : (S.done===0 ? "▶ Play Level 1" : "▶ Continue – Level "+(S.done+1));
+  var box=$("lvScroll"); box.innerHTML="";
+  var ranges=[[1,20,"🌱 Number Basics"],[21,50,"🔲 Squares"],[51,70,"√ Square Roots"],[71,100,"🚀 Master Mix"]];
+  ranges.forEach(function(r){
+    var h=document.createElement("div"); h.className="sec";
+    h.innerHTML="<span>"+r[2]+"</span><span>"+r[0]+"–"+r[1]+"</span>";
+    box.appendChild(h);
+    var g=document.createElement("div"); g.className="grid";
+    for(var n=r[0];n<=r[1];n++){
+      var b=document.createElement("button"); b.className="lv"; b.dataset.n=n;
+      if(n<=S.done){ b.classList.add("done"); b.textContent=n; }
+      else if(n===S.done+1){ b.classList.add("cur"); b.textContent=n; }
+      else { b.classList.add("lock"); b.innerHTML="🔒<small>"+n+"</small>"; }
+      g.appendChild(b);
+    }
+    box.appendChild(g);
+  });
+  var cur=box.querySelector(".cur");
+  if(cur) setTimeout(function(){ cur.scrollIntoView({block:"center"}); },30);
+}
+function goLevels(){ renderLevels(); show("levels"); }
+
+/* ================= GAME ================= */
+var cur={level:1,q:null,input:"",attempts:0,busy:false};
+
+function startLevel(n){
+  if(n<1||n>100) return;
+  if(n>S.done+1){ toast("🔒 Finish level "+(S.done+1)+" first!"); return; }
+  cur.level=n; cur.q=genQuestion(n,S.diff); cur.input=""; cur.attempts=0; cur.busy=false;
+  renderGame(); show("game");
+}
+function renderGame(){
+  $("gLevel").textContent="Level "+cur.level+" / 100";
+  $("gSec").textContent=sectionOf(cur.level);
+  $("gScore").textContent="⭐ "+S.score;
+  $("gDiff").textContent=cap(S.diff);
+  $("gDone").textContent=S.done+"/100";
+  $("gBar").style.width=S.done+"%";
+  $("gTopic").textContent=cur.q.topic;
+  $("gQ").textContent=cur.q.text;
+  $("gFb").textContent="";
+  var a=$("gAns"); a.className="ans"; showInput();
+  updateSoundBtns();
+}
+function showInput(){
+  var a=$("gAns");
+  if(cur.input===""){ a.textContent="?"; a.classList.add("ph"); }
+  else { a.textContent=cur.input; a.classList.remove("ph"); }
+}
+function press(k){
+  if(cur.busy) return;
+  audio();
+  var a=$("gAns");
+  a.classList.remove("shake","good");
+  if(k==="back"){ cur.input=cur.input.slice(0,-1); sfx("key"); }
+  else if(k==="go"){ submit(); return; }
+  else if(cur.input.length<7){ cur.input = (cur.input==="0") ? k : cur.input+k; sfx("key"); }
+  showInput();
+}
+var OOPS=["Not quite – try again! 💪","Almost! Give it another go 🙂","Oops! Check your math and retry 🤔","So close! You can do it ✨","Nice try! One more time 🌟"];
+var YAY=["Correct! 🎉","Awesome! 🌟","Brilliant! 🚀","You got it! 👏","Great job! 😎"];
+
+function submit(){
+  if(cur.busy) return;
+  if(cur.input===""){ toast("Type your answer first ✏️"); return; }
+  var val=parseInt(cur.input,10);
+  if(val===cur.q.ans) correct(); else wrong();
+}
+function wrong(){
+  cur.attempts++; sfx("bad");
+  var a=$("gAns"); a.classList.remove("good"); void a.offsetWidth; a.classList.add("shake");
+  $("gFb").textContent=pick(OOPS);
+  setTimeout(function(){ if(cur.busy) return; cur.input=""; showInput(); a.classList.remove("shake"); },520);
+}
+function correct(){
+  cur.busy=true; sfx("ok");
+  var a=$("gAns"); a.classList.add("good");
+  var msg=pick(YAY);
+  if(cur.level>S.done){
+    var pts=(10+Math.floor(cur.level/10)*2+(cur.attempts===0?5:0))*MULT[S.diff];
+    S.score+=pts; S.done=cur.level; save();
+    msg+=" +"+pts;
+    $("gScore").textContent="⭐ "+S.score; $("gDone").textContent=S.done+"/100"; $("gBar").style.width=S.done+"%";
+  }
+  $("gFb").textContent=msg;
+  confetti();
+  var lv=cur.level;
+  setTimeout(function(){
+    if(lv>=100){ finish(); }
+    else startLevel(lv+1);
+  },1100);
+}
+function finish(){
+  sfx("win"); confetti(); confetti();
+  modal("🏆 You did it!","You completed all 100 levels!\nFinal score: ⭐ "+S.score,[
+    {label:"🏠 Home",fn:goHome},
+    {label:"Levels",cls:"primary",fn:goLevels}
+  ]);
+  $("mText").style.whiteSpace="pre-line";
+}
+function confetti(){
+  var fx=$("fx"), em=["🎉","⭐","✨","🎊","💫"];
+  for(var i=0;i<16;i++){
+    var s=document.createElement("span");
+    s.textContent=pick(em); s.style.left=ri(2,95)+"%"; s.style.animationDelay=(Math.random()*0.4)+"s";
+    s.style.fontSize=ri(20,34)+"px"; fx.appendChild(s);
+    (function(el){ setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); },2000); })(s);
+  }
+}
+
+/* ================= RESET ================= */
+function confirmReset(){
+  modal("Restart game?","This will erase ALL your progress and score. This cannot be undone.",[
+    {label:"Cancel"},
+    {label:"Yes, restart",cls:"primary",fn:function(){
+      S.done=0; S.score=0; save(); cur.busy=false; goHome(); toast("Progress reset ✅");
+    }}
+  ]);
+  $("mText").style.whiteSpace="normal";
+}
+
+/* ================= EVENTS ================= */
+function init(){
+  load(); renderHome();
+  $("startBtn").onclick=function(){ audio(); goLevels(); };
+  $("diffBox").onclick=function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    S.diff=b.dataset.d; save(); renderHome(); sfx("key");
+  };
+  $("resetHome").onclick=confirmReset;
+  $("lvHome").onclick=goHome;
+  $("gHome").onclick=function(){ cur.busy=false; goHome(); };
+  $("gRestart").onclick=confirmReset;
+  $("contBtn").onclick=function(){ startLevel(Math.min(S.done+1,100)); };
+  $("lvScroll").onclick=function(e){
+    var b=e.target.closest(".lv"); if(!b) return;
+    var n=parseInt(b.dataset.n,10);
+    if(n>S.done+1) toast("🔒 Finish level "+(S.done+1)+" first!");
+    else startLevel(n);
+  };
+  $("keys").onclick=function(e){ var b=e.target.closest(".k"); if(b) press(b.dataset.k); };
+  var sb=document.querySelectorAll("[data-sound]");
+  for(var i=0;i<sb.length;i++) sb[i].onclick=function(){ S.sound=!S.sound; save(); updateSoundBtns(); if(S.sound){ audio(); sfx("key"); } };
+  document.addEventListener("keydown",function(e){
+    if(activeScreen()!=="game"||modalOpen()) return;
+    if(e.key>="0"&&e.key<="9") press(e.key);
+    else if(e.key==="Backspace"){ e.preventDefault(); press("back"); }
+    else if(e.key==="Enter"){ e.preventDefault(); press("go"); }
+  });
+}
+init();
+})();
+</script>
+</body>
+</html>
